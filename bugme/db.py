@@ -16,7 +16,7 @@ def generate_insert_query(table_name, record_dict):
 
 
 def get_connection(db_path=DB_PATH):
-    con = sqlite3.connect(db_path)
+    con = sqlite3.connect(str(db_path), isolation_level=None)
 
     def dict_factory(cursor, row):
         return {col[0]:row[idx] for idx, col in enumerate(cursor.description)}

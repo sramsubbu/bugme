@@ -19,5 +19,8 @@ def _locate_app_path():
 _app_path = _locate_app_path()
 
 APP_PATH = _app_path
-DB_PATH = _app_path / "bugs.db"
+if _app_path is not None:
+    DB_PATH = _app_path / "bugs.db"
+else:
+    DB_PATH = None
 
