@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %} View defect  {% endblock %}
+
+{% block body %}
+
+<table>
+  {% for key,value in bug.items() %}
+  <tr>
+    {% if key != "comments" %}
+       <td> {{ key }} </td>
+       <td> {{ value }} </td>
+    {% endif %}
+  </tr>
+  {% endfor %}
+</table>
+
+{% for item in bug['comments'] %}
+   <p> {{ item['comment'] }} </p> 
+{% endfor %}
+   
+{% endblock %}

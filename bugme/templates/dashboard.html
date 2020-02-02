@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %} Dashboard view {% endblock %}
+
+{% block body %}
+<table class="greenTable" id="bugs">
+  <thead>
+  <tr>
+    {% for item in header %}
+    <th> {{ item }} </th>
+    {% endfor %}
+  </tr>
+  </thead>
+  {% for bug in bugs %}
+  <tr>
+    {% for item in bug %}
+    <td> {{ item }} </td>
+    {% endfor %}
+  </tr>
+  {% endfor %}
+</table>
+
+{% endblock %}
+
+

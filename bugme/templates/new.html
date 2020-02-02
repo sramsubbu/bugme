@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %} New defect  {% endblock %}
+
+{% block body %}
+<h5> Create New defect </h5>
+<form method="POST" action="{{url_for('new_defect')}}">
+  Description: <input type="text" id="description" name="description"  /> <br />
+  Expected Behaviour: <input type="text" id="expected" name="expected" /> <br />
+  Observed Behaviour: <input type="text" id="observed" name="observed" /> <br />
+  <input type="submit" value="Create" /> 
+</form>
+
+{% endblock %}
