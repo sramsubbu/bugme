@@ -150,3 +150,14 @@ def resolve(defect_id, resolution, instance):
     query = 'UPDATE bugs SET resolution_date=CURRENT_TIMESTAMP WHERE defect_id=?;'
     row = (defect_id, )
     dbcon.execute(query, row)
+
+
+def delete_bug(defect_id, instance):
+    # added as a hack to remove unwanted tickets.
+    # should not be added as functionality
+    db_path = DB_PATH.format(APP_PATH=instance)
+    dbcon = get_connection(db_path)
+
+    query = "DELETE FROM bugs WHERE defect_id=?;"
+    row = (defect_id, )
+    dbcon.execute(query, row)
