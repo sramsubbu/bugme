@@ -1,3 +1,4 @@
+* TODO Add a setup.py
 * TODO Add an interactive mode 
 * TODO Add a web ui using react
 * TODO Add unit tests for the code
