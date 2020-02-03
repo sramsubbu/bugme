@@ -2,42 +2,9 @@ import sqlite3
 from pathlib import Path
 from functools import wraps
 
+import db
+
 APP_PATH = '.bugme'
-DB_PATH = '{APP_PATH}/bugs.db'
-
-def get_connection(db_path):
-    con = sqlite3.connect(db_path, isolation_level=None)
-
-    def dict_factory(cursor, row):
-        return {col[0]: row[idx] for idx, col in enumerate(cursor.description)}
-
-    con.row_factory = dict_factory
-    return con
-
-def create_database_tables(db_path):
-    con = get_connection(db_path)
-    with open("ddl.sql") as fp:
-        sql_script = fp.read()
-
-    con.executescript(sql_script)
-
-def generate_update_query(tablename, record_dict, pk_name, pk_value):
-    query_template = 'UPDATE {table} SET {update_string} WHERE {pk_name}=?;'
-    update_string = ','.join('{name}=?'.format(name=name) for name in record_dict)
-    row = tuple(record_dict.values()) + (pk_value, )
-    query = query_template.format(table=tablename,
-                                  update_string=update_string,
-                                  pk_name=pk_name)
-    return query, row
-
-
-def generate_insert_query(tablename, record_dict):
-    query_template = 'INSERT INTO {table}({names}) VALUES({values});'
-    names = ','.join(record_dict.keys())
-    values = ','.join('?' for _ in record_dict)
-    row = tuple(record_dict.values())
-    query = query_template.format(table=tablename, names=names, values=values)
-    return query, row
 
 
 def get_app_instance():
@@ -74,90 +41,66 @@ def create_new_instance(path=None):
 
 
 def create_new_defect(description, observed, expected, instance):
-    db_path = DB_PATH.format(APP_PATH=instance)
-    dbcon = get_connection(db_path)
     record = {"description": description,
               "expected_behaviour": expected,
               "observed_behaviour": observed,
-              "status" : "OPEN"}
-    query, row = generate_insert_query("bugs", record)
-    res = dbcon.execute(query, row)
-    return res.lastrowid
+              "status": "OPEN"
+              }
+    return db.insert_record("bugs", record, instance) 
+
 
 def update_status(defect_id, status, instance):
-    db_path = DB_PATH.format(APP_PATH=instance)
-    dbcon = get_connection(db_path)
     record = {"status": status}
-    query, row = generate_update_query("bugs", record, "defect_id", defect_id)
     try:
-        dbcon.execute(query, row)
-    except sqlite3.IntegrityError as e:
-        print("Invalid status value provided")
+        db.update_record("bugs", record, "defect_id", defect_id, instance)
+    except sqlite3.IntegrityError as invalid_status:
+        print("Status value provided is not valid")
 
-        
+
 def get_status(defect_id, instance):
-    defect_id = int(defect_id)
-    db_path = DB_PATH.format(APP_PATH=instance)
-    dbcon = get_connection(db_path)
-    query = "SELECT status FROM bugs WHERE defect_id=?;"
+    defect_id= int(defect_id)
+    query = 'SELECT status FROM bugs WHERE defect_id=?;'
     row = (defect_id, )
-    res = dbcon.execute(query, row).fetchall()
-    return res[0]['status']
-    
-    
-    
+    return db.run_query(query, row)[0]['status']
+        
+
 def get_all_bugs(instance):
-    db_path = DB_PATH.format(APP_PATH=instance)
-    dbcon = get_connection(db_path)
     query = 'SELECT * FROM bugs;'
-    bugs = dbcon.execute(query).fetchall()
-    return bugs
+    empty_row = tuple()
+    return db.run_query(query, empty_row, instance)
 
 
 def get_bug(defect_id, instance):
-    db_path = DB_PATH.format(APP_PATH=instance)
-    dbcon = get_connection(db_path)
-    query = 'SELECT * FROM bugs WHERE defect_id=?;'
-    row = (defect_id, )
-    bug = dbcon.execute(query, row).fetchall()
-    bug = bug[0]
+    query = "SELECT * FROM bugs WHERE defect_id=?;"
+    row = (defect_id,)
+    bug = db.run_query(query, row, instance)[0]
 
-    comments = 'SELECT * FROM comments WHERE defect_id=?;'
+    query = 'SELECT * FROM comments WHERE defect_id=?;'
     row = (defect_id, )
-    comments = dbcon.execute(comments, row).fetchall()
+    comments = db.run_query(query, row, instance)
     bug['comments'] = comments
     return bug
 
 
 def add_comment(defect_id, comment, instance):
-    db_path = DB_PATH.format(APP_PATH=instance)
-    dbcon = get_connection(db_path)
-
-    record = {"defect_id": defect_id, "comment": comment}
-    query, row = generate_insert_query("comments", record)
-    cid = dbcon.execute(query, row)
-    return cid
+    record = {"defect_id": defect_id, "comment": comment }
+    return db.insert_record("comments", record, instance)
     
 
 def resolve(defect_id, resolution, instance):
-    db_path = DB_PATH.format(APP_PATH=instance)
-    dbcon = get_connection(db_path)
+    record = {"resolution": resolution,
+              "status": "CLOSED"}
+    db.update_record("bugs",record, "defect_id", defect_id, instance)
 
-    record = {"resolution": resolution,  "status": "CLOSED"}
-    query, row = generate_update_query("bugs", record, "defect_id", defect_id)
-    dbcon.execute(query, row)
-
-    query = 'UPDATE bugs SET resolution_date=CURRENT_TIMESTAMP WHERE defect_id=?;'
+    query = "UPDATE bugs SET resolution_date=CURRENT_TIMESTAMP WHERE defect_id=?;"
     row = (defect_id, )
-    dbcon.execute(query, row)
+    db.run_query(query, row, instance)
+
 
 
 def delete_bug(defect_id, instance):
     # added as a hack to remove unwanted tickets.
     # should not be added as functionality
-    db_path = DB_PATH.format(APP_PATH=instance)
-    dbcon = get_connection(db_path)
-
     query = "DELETE FROM bugs WHERE defect_id=?;"
     row = (defect_id, )
-    dbcon.execute(query, row)
+    db.run_query(query, row)
