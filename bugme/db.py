@@ -1,5 +1,9 @@
+"""
+database related functions to handle CRUD operations of the database. Also has utilities to setup
+the database
+"""
+
 import sqlite3
-from pathlib import Path
 
 DB_PATH = '{app_path}/bugs.db'
 
@@ -14,11 +18,11 @@ def get_connection(app_instance):
     con.row_factory = dict_factory
     return con
 
-def create_database_tables(db_path):
+def create_database_tables(app_instance):
     """ Create the database tables when initialising a bugme instance """
-    con = get_connection(db_path)
-    with open("ddl.sql") as fp:
-        sql_script = fp.read()
+    con = get_connection(app_instance)
+    with open("ddl.sql") as script_file:
+        sql_script = script_file.read()
 
     con.executescript(sql_script)
 
@@ -43,6 +47,7 @@ def generate_insert_query(tablename, record_dict):
     return query, row
 
 def insert_record(tablename, record_dict, app_instance):
+    """ insert the given record into the database table 'tablename' """
     dbcon = get_connection(app_instance)
     query, row = generate_insert_query(tablename, record_dict)
     res = dbcon.execute(query, row)
@@ -50,12 +55,14 @@ def insert_record(tablename, record_dict, app_instance):
 
 
 def update_record(tablename, record_dict, pk_name, pk_value, app_instance):
+    """ update the record with primary key 'pk_value' with the record_dict """
     dbcon = get_connection(app_instance)
     query, row = generate_update_query(tablename, record_dict, pk_name, pk_value)
     dbcon.execute(query, row)
 
 
 def run_query(sql_query, record_tuple, app_instance):
+    """ run the given sql query with the record_tuple and return the result """
     dbcon = get_connection(app_instance)
     res = dbcon.execute(sql_query, record_tuple).fetchall()
     return res
